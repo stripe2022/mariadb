@@ -15,6 +15,8 @@
     th, td { padding: 8px 12px; border-bottom: 1px solid #22304d; }
     th { text-align: left; color: #9fb0d3; }
     td.num { text-align: right; }
+    td.costo { color: #ef4444; font-weight: 600; }
+    td.venta { color: #22c55e; font-weight: 600; }
     button { margin-top: 10px; padding: 8px 14px; border: none; background: #4f8cff; color: #fff; border-radius: 6px; cursor: pointer; }
   </style>
 </head>
@@ -42,6 +44,12 @@
         complete: (res) => {
           parsed.headers = res.meta.fields;
           parsed.rows = res.data;
+          // Ordenar alfabéticamente por la primera columna (Producto)
+          parsed.rows.sort((a, b) => {
+            const nameA = (a[parsed.headers[0]] || '').toString().toLowerCase();
+            const nameB = (b[parsed.headers[0]] || '').toString().toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
           buildPreview();
           btnPdf.disabled = false;
         }
@@ -64,9 +72,12 @@
         parsed.headers.forEach(h => {
           const td = document.createElement('td');
           let val = r[h];
-          if (h.toLowerCase().includes('precio') || h.toLowerCase().includes('costo')) {
+          if (h.toLowerCase().includes('costo')) {
             td.textContent = '$' + Number(val).toLocaleString();
-            td.classList.add('num');
+            td.classList.add('num','costo');
+          } else if (h.toLowerCase().includes('precioventa')) {
+            td.textContent = '$' + Number(val).toLocaleString();
+            td.classList.add('num','venta');
           } else if (h.toLowerCase().includes('stock')) {
             td.textContent = Number(val).toLocaleString();
             td.classList.add('num');
@@ -90,10 +101,12 @@
       const headers = parsed.headers.map(h => ({ content: h, styles: { halign: h.match(/costo|precio|stock/i) ? 'right' : 'left' } }));
       const body = parsed.rows.map(r => parsed.headers.map(h => {
         let val = r[h];
-        if (h.toLowerCase().includes('precio') || h.toLowerCase().includes('costo')) {
-          return '$' + Number(val).toLocaleString();
+        if (h.toLowerCase().includes('costo')) {
+          return { content: '$' + Number(val).toLocaleString(), styles: { textColor: [239,68,68], halign: 'right', fontStyle: 'bold' } };
+        } else if (h.toLowerCase().includes('precioventa')) {
+          return { content: '$' + Number(val).toLocaleString(), styles: { textColor: [34,197,94], halign: 'right', fontStyle: 'bold' } };
         } else if (h.toLowerCase().includes('stock')) {
-          return Number(val).toLocaleString();
+          return { content: Number(val).toLocaleString(), styles: { halign: 'right' } };
         } else {
           return val;
         }
