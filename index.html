@@ -8,35 +8,19 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
   <style>
-    :root {
-      --bg: #0b1220;
-      --card: #121a2b;
-      --muted: #9fb0d3;
-      --text: #e9f0ff;
-      --accent: #4f8cff;
-      --accent2: #22c55e;
-      --danger: #ef4444;
-      --border: #22304d;
-    }
-    body {
-      margin: 0; padding: 24px; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, Helvetica, sans-serif;
-      background: radial-gradient(1200px 800px at 20% -20%, rgba(79,140,255,.15), transparent 60%),
-                  radial-gradient(1200px 800px at 120% 20%, rgba(34,197,94,.12), transparent 60%),
-                  var(--bg);
-      color: var(--text);
-    }
-    .container { max-width: 1100px; margin: 0 auto; display: grid; gap: 18px; }
-    h1 { font-size: 1.35rem; margin: 0; }
-    .card { background: #0f172a; border: 1px solid var(--border); padding: 16px; border-radius: 14px; }
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 20px; background: #0b1220; color: #e9f0ff; }
+    .container { max-width: 1000px; margin: auto; }
+    h1 { margin: 0 0 20px; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
-    th { text-align: left; color: var(--muted); }
+    th, td { padding: 8px 12px; border-bottom: 1px solid #22304d; }
+    th { text-align: left; color: #9fb0d3; }
     td.num { text-align: right; }
+    button { margin-top: 10px; padding: 8px 14px; border: none; background: #4f8cff; color: #fff; border-radius: 6px; cursor: pointer; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Subir CSV → Generar PDF de Inventario</h1>
+    <h1>Inventario Tienda Barylie</h1>
     <input id="fileInput" type="file" accept=".csv,.tsv,.txt" />
     <button id="btnPdf" disabled>Generar PDF</button>
     <div id="preview"></div>
@@ -47,7 +31,7 @@
     const btnPdf = document.getElementById('btnPdf');
     const preview = document.getElementById('preview');
 
-    let parsed = { headers: [], rows: [], dateText: '' };
+    let parsed = { headers: [], rows: [] };
 
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0];
@@ -80,14 +64,11 @@
         parsed.headers.forEach(h => {
           const td = document.createElement('td');
           let val = r[h];
-          if (h.toLowerCase().includes('precio')) {
-            td.textContent = '$' + val;
-            td.classList.add('num');
-          } else if (h.toLowerCase().includes('costo')) {
-            td.textContent = '$' + val;
+          if (h.toLowerCase().includes('precio') || h.toLowerCase().includes('costo')) {
+            td.textContent = '$' + Number(val).toLocaleString();
             td.classList.add('num');
           } else if (h.toLowerCase().includes('stock')) {
-            td.textContent = val;
+            td.textContent = Number(val).toLocaleString();
             td.classList.add('num');
           } else {
             td.textContent = val;
@@ -103,20 +84,30 @@
     btnPdf.addEventListener('click', () => {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
+      const now = new Date();
+      const fechaHora = now.toLocaleDateString('es-ES') + ' ' + now.toLocaleTimeString('es-ES');
+
       const headers = parsed.headers.map(h => ({ content: h, styles: { halign: h.match(/costo|precio|stock/i) ? 'right' : 'left' } }));
       const body = parsed.rows.map(r => parsed.headers.map(h => {
         let val = r[h];
         if (h.toLowerCase().includes('precio') || h.toLowerCase().includes('costo')) {
-          return '$' + val;
+          return '$' + Number(val).toLocaleString();
+        } else if (h.toLowerCase().includes('stock')) {
+          return Number(val).toLocaleString();
         } else {
           return val;
         }
       }));
-      doc.text('Reporte de Inventario', 14, 20);
+
+      doc.setFontSize(16);
+      doc.text('Inventario Tienda Barylie', 14, 20);
+      doc.setFontSize(11);
+      doc.text('Generado: ' + fechaHora, 14, 36);
+
       doc.autoTable({
         head: [headers],
         body: body,
-        startY: 30,
+        startY: 50,
         styles: { fontSize: 9 },
         columnStyles: {
           1: { halign: 'right' },
@@ -124,7 +115,8 @@
           3: { halign: 'right' }
         }
       });
-      doc.save('inventario.pdf');
+
+      doc.save('inventario_barylie.pdf');
     });
   </script>
 </body>
